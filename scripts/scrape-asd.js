@@ -22,8 +22,11 @@ async function searchASD(city) {
   const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${query}&key=${API_KEY}`;
   const res = await fetch(url);
   const data = await res.json();
+  console.log(`[${city}] status: ${data.status} - results: ${(data.results||[]).length}`);
+  if (data.error_message) console.log(`ERROR: ${data.error_message}`);
   return data.results || [];
 }
+
 
 async function getPlaceDetails(placeId) {
   const fields = 'name,formatted_address,formatted_phone_number,website';
