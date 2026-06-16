@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Klubly — Ricerca ASD</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0f1e;
+    --surface: #111827;
+    --surface2: #1a2236;
+    --border: #1e2d45;
+    --accent: #3b82f6;
+    --accent2: #06b6d4;
+    --text: #e2e8f0;
+    --text-muted: #64748b;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+  }
+
+  /* Header */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.4rem;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.5px;
+  }
+
+  .header-stats {
+    display: flex;
+    gap: 1.5rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+
+  .header-stats span strong {
+    color: var(--accent2);
+    font-family: 'Syne', sans-serif;
+  }
+
+  /* Layout */
+  .container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+
+  /* Search Panel */
+  .search-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+  }
+
+  .search-panel h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .search-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr auto;
+    gap: 1rem;
+    align-items: end;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  input, select {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input:focus, select:focus {
+    border-color: var(--accent);
+  }
+
+  input::placeholder { color: var(--text-muted); }
+
+  select option { background: var(--surface2); }
+
+  .btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), #2563eb);
+    color: white;
+  }
+
+  .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  .btn-success {
+    background: var(--success);
+    color: white;
+    font-size: 0.8rem;
+    padding: 0.5rem 1rem;
+  }
+
+  .btn-success:hover { opacity: 0.85; }
+  .btn-success:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Status bar */
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1rem;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    min-height: 24px;
+  }
+
+  .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: none;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Results */
+  .results-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+  }
+
+  .results-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+  }
+
+  .results-count {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    background: var(--surface2);
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+  }
+
+  .results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 1rem;
+  }
+
+  .result-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.25rem;
+    transition: border-color 0.2s, transform 0.2s;
+    position: relative;
+  }
+
+  .result-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+
+  .result-card.saved {
+    border-color: var(--success);
+    opacity: 0.7;
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.75rem;
+    gap: 0.5rem;
+  }
+
+  .card-name {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+    line-height: 1.3;
+    flex: 1;
+  }
+
+  .rating-badge {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.75rem;
+    color: var(--warning);
+    white-space: nowrap;
+  }
+
+  .card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-bottom: 1rem;
+  }
+
+  .card-info-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+  }
+
+  .card-info-row .icon { flex-shrink: 0; margin-top: 1px; }
+
+  .card-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .saved-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.78rem;
+    color: var(--success);
+    font-weight: 500;
+  }
+
+  /* Leads Table */
+  .leads-section {
+    margin-top: 3rem;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+  }
+
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+
+  th {
+    background: var(--surface2);
+    padding: 0.85rem 1rem;
+    text-align: left;
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+  }
+
+  td {
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface2); }
+
+  .stato-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.25rem 0.7rem;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .stato-nuovo { background: rgba(59,130,246,0.15); color: var(--accent); }
+  .stato-da_contattare { background: rgba(245,158,11,0.15); color: var(--warning); }
+  .stato-contattato { background: rgba(16,185,129,0.15); color: var(--success); }
+  .stato-cliente { background: rgba(139,92,246,0.15); color: #a78bfa; }
+
+  .stato-select {
+    background: transparent;
+    border: none;
+    color: inherit;
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: var(--text-muted);
+  }
+
+  .empty-state .big-icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.3; }
+  .empty-state p { font-size: 0.9rem; }
+
+  .tab-bar {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0;
+  }
+
+  .tab {
+    padding: 0.75rem 1.25rem;
+    font-family: 'Syne', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.2s;
+    background: none;
+    border-left: none;
+    border-right: none;
+    border-top: none;
+  }
+
+  .tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  @media (max-width: 768px) {
+    .search-grid { grid-template-columns: 1fr; }
+    .results-grid { grid-template-columns: 1fr; }
+    .container { padding: 1rem; }
+  }
+</style>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDTtR8Mc6fWnLlymZj3b0_wsPGUjA_-GKI&libraries=places&callback=initMap&language=it" async defer></script>
+</head>
+<body>
+
+<header>
+  <div class="logo">⚡ Klubly</div>
+  <div class="header-stats">
+    <span>Lead salvati: <strong id="totalLeads">0</strong></span>
+    <span>Clienti: <strong id="totalClienti">0</strong></span>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="tab-bar">
+    <button class="tab active" onclick="switchTab('ricerca')">🔍 Ricerca ASD</button>
+    <button class="tab" onclick="switchTab('leads')">📋 I miei Lead</button>
+  </div>
+
+  <!-- TAB RICERCA -->
+  <div class="tab-content active" id="tab-ricerca">
+    <div class="search-panel">
+      <h2>🏟️ Trova Associazioni Sportive</h2>
+      <div class="search-grid">
+        <div class="form-group">
+          <label>Città / Comune</label>
+          <input type="text" id="inputCitta" placeholder="es. Torino, Cuneo, Savigliano..." />
+        </div>
+        <div class="form-group">
+          <label>Sport (opzionale)</label>
+          <input type="text" id="inputSport" placeholder="es. calcio, pallavolo..." />
+        </div>
+        <div class="form-group">
+          <label>Raggio</label>
+          <select id="inputRaggio">
+            <option value="5000">5 km</option>
+            <option value="10000" selected>10 km</option>
+            <option value="20000">20 km</option>
+            <option value="50000">50 km</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" id="btnCerca" onclick="cercaASD()">
+          <span>🔍</span> Cerca
+        </button>
+      </div>
+      <div class="status-bar">
+        <div class="spinner" id="spinner"></div>
+        <span id="statusMsg">Inserisci una città per iniziare la ricerca</span>
+      </div>
+    </div>
+
+    <div id="resultsSection" style="display:none">
+      <div class="results-header">
+        <div class="results-title">Risultati</div>
+        <div class="results-count" id="resultsCount">0 trovate</div>
+      </div>
+      <div class="results-grid" id="resultsGrid"></div>
+    </div>
+  </div>
+
+  <!-- TAB LEADS -->
+  <div class="tab-content" id="tab-leads">
+    <div class="section-header">
+      <div class="section-title">📋 Lead Salvati</div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Nome ASD</th>
+            <th>Indirizzo</th>
+            <th>Telefono</th>
+            <th>Stato</th>
+            <th>Salvato il</th>
+          </tr>
+        </thead>
+        <tbody id="leadsTableBody">
+          <tr><td colspan="5">
+            <div class="empty-state">
+              <div class="big-icon">📭</div>
+              <p>Nessun lead ancora salvato.<br>Vai nella tab Ricerca e salva le ASD interessanti.</p>
+            </div>
+          </td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const GOOGLE_KEY = 'AIzaSyDTtR8Mc6fWnLlymZj3b0_wsPGUjA_-GKI';
+  const SUPABASE_URL = 'https://nblevyudmookybxzuodc.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ibGV2eXVkbW9va3lieHp1b2RjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5MjMxMTksImV4cCI6MjA5NjQ5OTExOX0.7oVU4qTHx7uF9GZhWG6DQeOqrez4C3YfLUyYsgk_6M0';
+
+  let savedPlaceIds = new Set();
+  let currentResults = [];
+
+  async function sbFetch(path, options = {}) {
+    const res = await fetch(SUPABASE_URL + '/rest/v1/' + path, {
+      ...options,
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation',
+        ...(options.headers || {})
+      }
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+  }
+
+  let placesService = null;
+  let geocoder = null;
+  let map = null;
+
+  function initMap() {
+    map = new google.maps.Map(document.createElement('div'));
+    placesService = new google.maps.places.PlacesService(map);
+    geocoder = new google.maps.Geocoder();
+    setStatus('✅ Servizio Google Maps pronto');
+  }
+
+  async function cercaASD() {
+    const citta = document.getElementById('inputCitta').value.trim();
+    if (!citta) { setStatus('⚠️ Inserisci una città'); return; }
+    if (!geocoder) { setStatus('⏳ Google Maps ancora in caricamento, riprova...'); return; }
+
+    const sport = document.getElementById('inputSport').value.trim();
+    const raggio = parseInt(document.getElementById('inputRaggio').value);
+    const btn = document.getElementById('btnCerca');
+
+    btn.disabled = true;
+    showSpinner(true);
+    setStatus('Geocoding città...');
+
+    geocoder.geocode({ address: citta + ' Italia' }, (geoResults, geoStatus) => {
+      if (geoStatus !== 'OK' || !geoResults?.length) {
+        setStatus('❌ Città non trovata');
+        showSpinner(false); btn.disabled = false; return;
+      }
+
+      const loc = geoResults[0].geometry.location;
+      const label = geoResults[0].formatted_address;
+      setStatus(`📍 ${label} — Cerco ASD...`);
+
+      const query = sport ? `associazione sportiva dilettantistica ${sport}` : 'associazione sportiva dilettantistica';
+
+      placesService.textSearch({
+        query,
+        location: loc,
+        radius: raggio,
+        language: 'it'
+      }, (results, status) => {
+        if (status === google.maps.places.PlacesServiceStatus.OK) {
+          currentResults = results || [];
+        } else {
+          currentResults = [];
+        }
+        renderResults(currentResults);
+        setStatus(`✅ ${currentResults.length} risultati trovati per "${citta}"`);
+        showSpinner(false);
+        btn.disabled = false;
+      });
+    });
+  }
+
+  function renderResults(results) {
+    const grid = document.getElementById('resultsGrid');
+    const section = document.getElementById('resultsSection');
+    document.getElementById('resultsCount').textContent = results.length + ' trovate';
+    section.style.display = 'block';
+
+    if (!results.length) {
+      grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="big-icon">🔍</div><p>Nessuna ASD trovata in questa zona.<br>Prova ad aumentare il raggio o cambia città.</p></div>';
+      return;
+    }
+
+    grid.innerHTML = results.map((p, i) => {
+      const isSaved = savedPlaceIds.has(p.place_id);
+      return `
+        <div class="result-card ${isSaved ? 'saved' : ''}" id="card-${p.place_id}">
+          <div class="card-header">
+            <div class="card-name">${p.name}</div>
+            ${p.rating ? `<div class="rating-badge">⭐ ${p.rating}</div>` : ''}
+          </div>
+          <div class="card-info">
+            ${p.vicinity ? `<div class="card-info-row"><span class="icon">📍</span><span>${p.vicinity}</span></div>` : ''}
+            ${p.opening_hours ? `<div class="card-info-row"><span class="icon">${p.opening_hours.open_now ? '🟢' : '🔴'}</span><span>${p.opening_hours.open_now ? 'Aperto ora' : 'Chiuso ora'}</span></div>` : ''}
+          </div>
+          <div class="card-actions">
+            ${isSaved
+              ? `<div class="saved-badge">✅ Già salvato</div>`
+              : `<button class="btn btn-success" onclick="salvaLead(${i})" id="btn-${p.place_id}">💾 Salva Lead</button>`
+            }
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  async function salvaLead(index) {
+    const p = currentResults[index];
+    const btn = document.getElementById('btn-' + p.place_id);
+    btn.disabled = true;
+    btn.textContent = '⏳ Salvo...';
+
+    // Recupera dettagli via Places Service
+    placesService.getDetails({
+      placeId: p.place_id,
+      fields: ['formatted_phone_number', 'website']
+    }, async (detail, status) => {
+      const telefono = detail?.formatted_phone_number || '';
+      const sito = detail?.website || '';
+
+      try {
+        await sbFetch('leads', {
+          method: 'POST',
+          body: JSON.stringify({
+            nome: p.name,
+            indirizzo: p.formatted_address || p.vicinity || '',
+            telefono,
+            sito_web: sito,
+            place_id: p.place_id,
+            stato: 'nuovo'
+          })
+        });
+
+        savedPlaceIds.add(p.place_id);
+        const card = document.getElementById('card-' + p.place_id);
+        card.classList.add('saved');
+        card.querySelector('.card-actions').innerHTML = '<div class="saved-badge">✅ Salvato!</div>';
+        await loadLeads();
+
+      } catch(e) {
+        btn.disabled = false;
+        btn.textContent = '💾 Salva Lead';
+        if (e.message.includes('duplicate') || e.message.includes('unique')) {
+          savedPlaceIds.add(p.place_id);
+          document.getElementById('card-' + p.place_id).querySelector('.card-actions').innerHTML = '<div class="saved-badge">✅ Già salvato</div>';
+        } else {
+          alert('Errore salvataggio: ' + e.message);
+        }
+      }
+    });
+  }
+
+  async function loadLeads() {
+    try {
+      const leads = await sbFetch('leads?select=*&order=created_at.desc');
+      savedPlaceIds = new Set(leads.map(l => l.place_id).filter(Boolean));
+
+      document.getElementById('totalLeads').textContent = leads.length;
+      document.getElementById('totalClienti').textContent = leads.filter(l => l.stato === 'cliente').length;
+
+      const tbody = document.getElementById('leadsTableBody');
+      if (!leads.length) {
+        tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="big-icon">📭</div><p>Nessun lead ancora salvato.</p></div></td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = leads.map(l => `
+        <tr>
+          <td><strong>${l.nome}</strong></td>
+          <td style="color:var(--text-muted);font-size:0.8rem">${l.indirizzo || '—'}</td>
+          <td style="color:var(--text-muted)">${l.telefono || '—'}</td>
+          <td>
+            <span class="stato-badge stato-${l.stato}">
+              <select class="stato-select" onchange="updateStato('${l.id}', this.value)" style="color:inherit;background:transparent;border:none;font-weight:600;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.04em;cursor:pointer">
+                <option value="nuovo" ${l.stato==='nuovo'?'selected':''}>🔵 Nuovo</option>
+                <option value="da_contattare" ${l.stato==='da_contattare'?'selected':''}>🟡 Da contattare</option>
+                <option value="contattato" ${l.stato==='contattato'?'selected':''}>🟢 Contattato</option>
+                <option value="cliente" ${l.stato==='cliente'?'selected':''}>⭐ Cliente</option>
+              </select>
+            </span>
+          </td>
+          <td style="color:var(--text-muted);font-size:0.78rem">${new Date(l.created_at).toLocaleDateString('it-IT')}</td>
+        </tr>
+      `).join('');
+
+    } catch(e) {
+      console.error('Load leads error:', e);
+    }
+  }
+
+  async function updateStato(id, stato) {
+    try {
+      await sbFetch(`leads?id=eq.${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ stato })
+      });
+      await loadLeads();
+    } catch(e) {
+      alert('Errore aggiornamento stato');
+    }
+  }
+
+  function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    event.target.classList.add('active');
+    if (tab === 'leads') loadLeads();
+  }
+
+  function setStatus(msg) { document.getElementById('statusMsg').textContent = msg; }
+  function showSpinner(v) { document.getElementById('spinner').style.display = v ? 'block' : 'none'; }
+
+  // Carica leads all'avvio
+  loadLeads();
+
+  // Enter key
+  document.getElementById('inputCitta').addEventListener('keydown', e => { if (e.key === 'Enter') cercaASD(); });
+</script>
+</body>
+</html>
