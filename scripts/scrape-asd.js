@@ -27,33 +27,12 @@ async function searchASD(city) {
   return data.results || [];
 }
 
-
 async function getPlaceDetails(placeId) {
   const fields = 'name,formatted_address,formatted_phone_number,website';
   const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=${fields}&key=${API_KEY}`;
   const res = await fetch(url);
   const data = await res.json();
   return data.result || {};
-}
-
-async function findEmailViaGoogle(name, city) {
-  try {
-    const query = encodeURIComponent(`"${name}" "${city}" email contatti`);
-    const url = `https://www.googleapis.com/customsearch/v1?q=${query}&key=${API_KEY}&cx=017576662512468239146:omuauf_lfve`;
-    const res = await fetch(url);
-    const data = await res.json();
-    const text = JSON.stringify(data.items || []);
-    const matches = text.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g);
-    if (!matches) return null;
-    const filtered = matches.filter(e =>
-      !e.includes('sentry') && !e.includes('example') &&
-      !e.includes('wordpress') && !e.includes('schema') &&
-      !e.includes('google')
-    );
-    return filtered[0] || null;
-  } catch {
-    return null;
-  }
 }
 
 async function findEmailFromWebsite(website) {
@@ -93,11 +72,7 @@ async function main() {
     for (const place of results) {
       const details = await getPlaceDetails(place.place_id);
       const website = details.website || null;
-      
-      let email = await findEmailFromWebsite(website);
-      if (!email) {
-        email = await findEmailViaGoogle(details.name || place.name, city);
-      }
+      const email = await findEmailFromWebsite(website);
 
       const record = {
         google_place_id: place.place_id,
@@ -110,14 +85,16 @@ async function main() {
         scraped_at: new Date().toISOString()
       };
 
+      console.log(`Saving: ${record.name}`);
       const { error } = await supabase
         .from('asd_leads')
         .upsert(record, { onConflict: 'google_place_id' });
 
       if (!error) {
         totalNew++;
-        console.log(`✓ ${record.name} ${email ? '| ' + email : ''}`);
+        console.log(`✓ ${record.name}`);
       } else {
+        console.log(`✗ ERROR: ${error.message} | ${error.code} | ${record.name}`);
         log.push({ error: error.message, record: record.name });
       }
     }
