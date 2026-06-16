@@ -33,22 +33,46 @@ async function getPlaceDetails(placeId) {
   return data.result || {};
 }
 
+async function findEmailViaGoogle(name, city) {
+  try {
+    const query = encodeURIComponent(`"${name}" "${city}" email contatti`);
+    const url = `https://www.googleapis.com/customsearch/v1?q=${query}&key=${API_KEY}&cx=017576662512468239146:omuauf_lfve`;
+    const res = await fetch(url);
+    const data = await res.json();
+    const text = JSON.stringify(data.items || []);
+    const matches = text.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g);
+    if (!matches) return null;
+    const filtered = matches.filter(e =>
+      !e.includes('sentry') && !e.includes('example') &&
+      !e.includes('wordpress') && !e.includes('schema') &&
+      !e.includes('google')
+    );
+    return filtered[0] || null;
+  } catch {
+    return null;
+  }
+}
+
 async function findEmailFromWebsite(website) {
   if (!website) return null;
   try {
-    const res = await fetch(website, { 
-      signal: AbortSignal.timeout(8000),
-      headers: { 'User-Agent': 'Mozilla/5.0' }
-    });
-    const html = await res.text();
-    const matches = html.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g);
-    if (!matches) return null;
-    // Filtra email generiche/sistema
-    const filtered = matches.filter(e => 
-      !e.includes('sentry') && !e.includes('example') && 
-      !e.includes('wordpress') && !e.includes('schema')
-    );
-    return filtered[0] || null;
+    const pagesToTry = [website, `${website}/contatti`, `${website}/contact`];
+    for (const url of pagesToTry) {
+      const res = await fetch(url, {
+        signal: AbortSignal.timeout(6000),
+        headers: { 'User-Agent': 'Mozilla/5.0' }
+      });
+      const html = await res.text();
+      const matches = html.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g);
+      if (matches) {
+        const filtered = matches.filter(e =>
+          !e.includes('sentry') && !e.includes('example') &&
+          !e.includes('wordpress') && !e.includes('schema')
+        );
+        if (filtered[0]) return filtered[0];
+      }
+    }
+    return null;
   } catch {
     return null;
   }
@@ -66,28 +90,32 @@ async function main() {
     for (const place of results) {
       const details = await getPlaceDetails(place.place_id);
       const website = details.website || null;
-      const email = await findEmailFromWebsite(website);
+      
+      let email = await findEmailFromWebsite(website);
+      if (!email) {
+        email = await findEmailViaGoogle(details.name || place.name, city);
+      }
 
       const record = {
-        place_id: place.place_id,
-        nome: details.name || place.name,
-        indirizzo: details.formatted_address || place.formatted_address,
-        telefono: details.formatted_phone_number || null,
-        sito_web: website,
+        google_place_id: place.place_id,
+        name: details.name || place.name,
+        address: details.formatted_address || place.formatted_address,
+        phone: details.formatted_phone_number || null,
+        website: website,
         email: email,
-        stato: 'nuovo',
-        created: new Date().toISOString()
+        city: city,
+        scraped_at: new Date().toISOString()
       };
 
       const { error } = await supabase
-        .from('leads')
-        .upsert(record, { onConflict: 'place_id' });
+        .from('asd_leads')
+        .upsert(record, { onConflict: 'google_place_id' });
 
       if (!error) {
         totalNew++;
-        console.log(`✓ ${record.nome} ${email ? '| email: ' + email : ''}`);
+        console.log(`✓ ${record.name} ${email ? '| ' + email : ''}`);
       } else {
-        log.push({ error: error.message, record: record.nome });
+        log.push({ error: error.message, record: record.name });
       }
     }
 
@@ -99,4 +127,5 @@ async function main() {
 }
 
 main().catch(console.error);
+
 
