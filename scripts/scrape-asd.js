@@ -1,5 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 import fs from 'fs';
+import { WebSocket } from 'ws';
+
+globalThis.WebSocket = WebSocket;
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -41,7 +44,6 @@ async function main() {
 
     for (const place of results) {
       const details = await getPlaceDetails(place.place_id);
-      
       const record = {
         google_place_id: place.place_id,
         name: details.name || place.name,
@@ -68,3 +70,4 @@ async function main() {
 }
 
 main().catch(console.error);
+
