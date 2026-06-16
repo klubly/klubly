@@ -33,6 +33,27 @@ async function getPlaceDetails(placeId) {
   return data.result || {};
 }
 
+async function findEmailFromWebsite(website) {
+  if (!website) return null;
+  try {
+    const res = await fetch(website, { 
+      signal: AbortSignal.timeout(8000),
+      headers: { 'User-Agent': 'Mozilla/5.0' }
+    });
+    const html = await res.text();
+    const matches = html.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g);
+    if (!matches) return null;
+    // Filtra email generiche/sistema
+    const filtered = matches.filter(e => 
+      !e.includes('sentry') && !e.includes('example') && 
+      !e.includes('wordpress') && !e.includes('schema')
+    );
+    return filtered[0] || null;
+  } catch {
+    return null;
+  }
+}
+
 async function main() {
   if (!fs.existsSync('logs')) fs.mkdirSync('logs');
   const log = [];
@@ -44,22 +65,30 @@ async function main() {
 
     for (const place of results) {
       const details = await getPlaceDetails(place.place_id);
+      const website = details.website || null;
+      const email = await findEmailFromWebsite(website);
+
       const record = {
-        google_place_id: place.place_id,
-        name: details.name || place.name,
-        address: details.formatted_address || place.formatted_address,
-        phone: details.formatted_phone_number || null,
-        website: details.website || null,
-        city: city,
-        scraped_at: new Date().toISOString()
+        place_id: place.place_id,
+        nome: details.name || place.name,
+        indirizzo: details.formatted_address || place.formatted_address,
+        telefono: details.formatted_phone_number || null,
+        sito_web: website,
+        email: email,
+        stato: 'nuovo',
+        created: new Date().toISOString()
       };
 
       const { error } = await supabase
-        .from('asd_leads')
-        .upsert(record, { onConflict: 'google_place_id' });
+        .from('leads')
+        .upsert(record, { onConflict: 'place_id' });
 
-      if (!error) totalNew++;
-      else log.push({ error: error.message, record: record.name });
+      if (!error) {
+        totalNew++;
+        console.log(`✓ ${record.nome} ${email ? '| email: ' + email : ''}`);
+      } else {
+        log.push({ error: error.message, record: record.nome });
+      }
     }
 
     await new Promise(r => setTimeout(r, 1000));
