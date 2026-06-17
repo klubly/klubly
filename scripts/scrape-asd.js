@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { WebSocket } from 'ws';
 import fs from 'fs';
 
 const supabase = createClient(
@@ -6,13 +7,14 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_KEY,
   {
     auth: { persistSession: false },
-    realtime: { disabled: true },
+    realtime: {
+      params: { eventsPerSecond: 0 }
+    },
     global: {
-      fetch: fetch
+      WebSocket: WebSocket
     }
   }
 );
-
 
 const API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 
@@ -28,7 +30,6 @@ async function searchASD(city) {
   const res = await fetch(url);
   const data = await res.json();
   console.log(`[${city}] status: ${data.status} - results: ${(data.results||[]).length}`);
-  if (data.error_message) console.log(`ERROR: ${data.error_message}`);
   return data.results || [];
 }
 
