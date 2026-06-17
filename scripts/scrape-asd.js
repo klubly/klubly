@@ -1,21 +1,7 @@
-import { createClient } from '@supabase/supabase-js';
-import { WebSocket } from 'ws';
 import fs from 'fs';
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY,
-  {
-    auth: { persistSession: false },
-    realtime: {
-      params: { eventsPerSecond: 0 }
-    },
-    global: {
-      WebSocket: WebSocket
-    }
-  }
-);
-
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
 const API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 
 const SEARCH_TARGETS = [
@@ -23,6 +9,24 @@ const SEARCH_TARGETS = [
   'Firenze', 'Venezia', 'Genova', 'Palermo', 'Bari',
   'Cuneo', 'Savigliano', 'Fossano', 'Alba', 'Asti'
 ];
+
+async function upsertToSupabase(record) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/asd_leads`, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'resolution=merge-duplicates'
+    },
+    body: JSON.stringify(record)
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`${res.status}: ${text}`);
+  }
+  return true;
+}
 
 async function searchASD(city) {
   const query = encodeURIComponent(`ASD associazione sportiva dilettantistica ${city}`);
@@ -67,17 +71,17 @@ async function findEmailFromWebsite(website) {
 }
 
 async function main() {
-  console.log('SUPABASE_URL:', process.env.SUPABASE_URL ? 'SET' : 'MISSING');
-  console.log('SUPABASE_SERVICE_KEY:', process.env.SUPABASE_SERVICE_KEY ? 'SET' : 'MISSING');
-
-  const { data: testData, error: testError } = await supabase
-    .from('asd_leads')
-    .select('id')
-    .limit(1);
-  console.log('DB test:', testError ? `ERROR: ${testError.message}` : 'OK');
-
-  if (testError) {
-    console.log('Cannot connect to Supabase, aborting.');
+  console.log('Testing Supabase connection...');
+  try {
+    const test = await fetch(`${SUPABASE_URL}/rest/v1/asd_leads?limit=1`, {
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`
+      }
+    });
+    console.log('DB test:', test.ok ? 'OK' : `ERROR ${test.status}`);
+  } catch (e) {
+    console.log('DB test FAILED:', e.message);
     process.exit(1);
   }
 
@@ -105,17 +109,13 @@ async function main() {
         scraped_at: new Date().toISOString()
       };
 
-      console.log(`Saving: ${record.name}`);
-      const { error } = await supabase
-        .from('asd_leads')
-        .upsert(record, { onConflict: 'google_place_id' });
-
-      if (!error) {
+      try {
+        await upsertToSupabase(record);
         totalNew++;
         console.log(`✓ ${record.name}`);
-      } else {
-        console.log(`✗ ERROR: ${error.message} | ${error.code} | ${record.name}`);
-        log.push({ error: error.message, record: record.name });
+      } catch (e) {
+        console.log(`✗ ERROR: ${e.message} | ${record.name}`);
+        log.push({ error: e.message, record: record.name });
       }
     }
 
@@ -127,6 +127,4 @@ async function main() {
 }
 
 main().catch(console.error);
-
-
 
