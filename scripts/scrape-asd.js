@@ -67,6 +67,20 @@ async function findEmailFromWebsite(website) {
 }
 
 async function main() {
+  console.log('SUPABASE_URL:', process.env.SUPABASE_URL ? 'SET' : 'MISSING');
+  console.log('SUPABASE_SERVICE_KEY:', process.env.SUPABASE_SERVICE_KEY ? 'SET' : 'MISSING');
+
+  const { data: testData, error: testError } = await supabase
+    .from('asd_leads')
+    .select('id')
+    .limit(1);
+  console.log('DB test:', testError ? `ERROR: ${testError.message}` : 'OK');
+
+  if (testError) {
+    console.log('Cannot connect to Supabase, aborting.');
+    process.exit(1);
+  }
+
   if (!fs.existsSync('logs')) fs.mkdirSync('logs');
   const log = [];
   let totalNew = 0;
@@ -113,5 +127,6 @@ async function main() {
 }
 
 main().catch(console.error);
+
 
 
